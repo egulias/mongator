@@ -70,3 +70,4 @@ class Events extends \Model\Base\Events
         $this->addEvent('PostDeleting');
     }
 }
+

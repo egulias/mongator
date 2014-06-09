@@ -80,9 +80,11 @@ class Core extends Extension
             $this->initConnectionNameProcess();
             $this->initCollectionNameProcess();
         }
+
         $this->initIndexesProcess();
         $this->initBehaviorsProcess();
-
+        $this->initEventPatternProcess();
+        $this->initEventsProcess();
         $this->initFieldsProcess();
         $this->initReferencesProcess();
         $this->initEmbeddedsProcess();
@@ -90,7 +92,6 @@ class Core extends Extension
             $this->initRelationsProcess();
         }
 
-        $this->initEventsProcess();
         $this->initOnDeleteProcess();
         $this->initIsFileProcess();
     }
@@ -118,12 +119,14 @@ class Core extends Extension
 
         // document
         $templates = array(
+            'Document',
             'DocumentSetDefaults',
             'DocumentSetDocumentData',
             'DocumentFields',
             'DocumentReferencesOne',
             'DocumentReferencesMany',
             'DocumentProcessOnDelete',
+            'DocumentEventsMethods'
         );
         if ($this->configClass['_has_references']) {
             $templates[] = 'DocumentUpdateReferenceFields';
@@ -139,7 +142,6 @@ class Core extends Extension
         }
         $templates[] = 'DocumentSetGet';
         $templates[] = 'DocumentFromToArray';
-        $templates[] = 'DocumentEventsMethods';
         $templates[] = 'DocumentQueryForSave';
 
         foreach ($templates as $template) {
@@ -306,6 +308,10 @@ class Core extends Extension
 
     private function initEventsProcess()
     {
+        if (!isset($this->configClass['events'])) {
+            $this->configClass['events'] = array();
+        }
+
         foreach (array(
             'preInsert',
             'postInsert',
@@ -314,13 +320,19 @@ class Core extends Extension
             'preDelete',
             'postDelete',
         ) as $event) {
-            if (!isset($this->configClass['events']) || !isset($this->configClass['events'][$event])) {
+            if (!isset($this->configClass['events'][$event])) {
                 $this->configClass['events'][$event] = array();
             }
         }
+    }
 
-        if (!isset($this->configClass['events'])) {
-            $this->configClass['events'] = array();
+    private function initEventPatternProcess()
+    {
+        if (!isset($this->configClass['eventPattern'])) {
+            $this->configClass['eventPattern'] = sprintf(
+                'mongator.%s.%%s',
+                strtolower(str_replace('\\', '.', $this->class))
+            );
         }
     }
 
@@ -735,14 +747,6 @@ EOF
         // inheritance
         foreach ($this->configClasses as $class => $configClass) {
             if (!$configClass['inheritance']) {
-                $configClass['_parent_events'] = array(
-                    'preInsert'  => array(),
-                    'postInsert' => array(),
-                    'preUpdate'  => array(),
-                    'postUpdate' => array(),
-                    'preDelete'  => array(),
-                    'postDelete' => array(),
-                );
                 continue;
             }
 
@@ -846,18 +850,8 @@ EOF
                 }
             } while ($continue);
 
-            // parent events
-            $parentEvents = array(
-                'preInsert'  => array(),
-                'postInsert' => array(),
-                'preUpdate'  => array(),
-                'postUpdate' => array(),
-                'preDelete'  => array(),
-                'postDelete' => array(),
-            );
             $loopClass = $inheritableClass;
             do {
-                $parentEvents = array_merge_recursive($this->configClasses[$loopClass]['events'], $parentEvents);
                 if ($this->configClasses[$loopClass]['inheritance']) {
                     $loopClass = $this->configClasses[$loopClass]['inheritance']['class'];
                     $continue = true;
@@ -865,7 +859,6 @@ EOF
                     $continue = false;
                 }
             } while ($continue);
-            $configClass['_parent_events'] = $parentEvents;
 
             // type
             if ('single' == $inheritable['type']) {

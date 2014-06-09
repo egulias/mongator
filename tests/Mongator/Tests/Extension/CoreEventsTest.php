@@ -33,49 +33,6 @@ class CoreEventsTest extends TestCase
         ), $documents[1]->getEvents());
     }
 
-    public function testEmbeddedSaveEventsInsert()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $this->assertSame(array(
-            '2PreInserting1',
-            '2PostInserting0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreInserting1',
-            '1PostInserting0',
-        ), $embeddeds[1]->getEvents());
-    }
-
-    public function testEmbeddedSaveEventsInsertOldDocument()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-        $document->save();
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $this->assertSame(array(
-            '2PreInserting1',
-            '2PostInserting0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreInserting1',
-            '1PostInserting0',
-        ), $embeddeds[1]->getEvents());
-    }
-
     public function testDocumentSaveOnceEventsInsert()
     {
         $documents = array(
@@ -105,38 +62,6 @@ class CoreEventsTest extends TestCase
         ), $documents[1]->getEvents());
     }
 
-
-    public function testEmbeddedSaveOnceEventsInsert()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $embeddeds[0]->registerOncePreInsertEvent(function($document) {
-            $document->addEvent('OncePreInsert');
-        });
-
-        $embeddeds[1]->registerOncePostInsertEvent(function($document) {
-            $document->addEvent('OncePostInsert');
-        });
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $this->assertSame(array(
-            '2PreInserting1',
-            '2OncePreInsert1',
-            '2PostInserting0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreInserting1',
-            '1PostInserting0',
-            '1OncePostInsert0'
-        ), $embeddeds[1]->getEvents());
-    }
-
     public function testDocumentSaveEventsUpdate()
     {
         $documents = array(
@@ -154,59 +79,6 @@ class CoreEventsTest extends TestCase
             '1PreUpdating01',
             '1PostUpdating00',
         ), $documents[1]->getEvents());
-    }
-
-    public function testEmbeddedSaveEventsUpdate()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $embeddeds[0]->clearEvents()->setName('bar')->setMyEventPrefix('2');
-        $embeddeds[1]->clearEvents()->setName('bar')->setMyEventPrefix('1');
-
-        $document->save();
-
-        $this->assertSame(array(
-            '2PreUpdating1',
-            '2PostUpdating0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreUpdating0',
-            '1PostUpdating0',
-        ), $embeddeds[1]->getEvents());
-    }
-
-    public function testEmbeddedSaveEventsUpdateOldDocument()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-        $document->save();
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $embeddeds[0]->clearEvents()->setName('bar')->setMyEventPrefix('2');
-        $embeddeds[1]->clearEvents()->setName('bar')->setMyEventPrefix('1');
-
-        $document->save();
-
-        $this->assertSame(array(
-            '2PreUpdating1',
-            '2PostUpdating0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreUpdating0',
-            '1PostUpdating0',
-        ), $embeddeds[1]->getEvents());
     }
 
     public function testDocumentSaveOnceEventsUpdate()
@@ -239,56 +111,6 @@ class CoreEventsTest extends TestCase
             '1PostUpdating00',
             '1OncePostUpdate00'
         ), $documents[1]->getEvents());
-    }
-
-    public function testEmbeddedSaveOnceEventsUpdate()
-    {
-        $document = $this->mongator->create('Model\EventsEmbeddedMany');
-
-        $embeddeds = array(
-            $this->mongator->create('Model\EmbeddedEvents')->setName('foo')->setMyEventPrefix('2'),
-            $this->mongator->create('Model\EmbeddedEvents')->setName('bar')->setMyEventPrefix('1'),
-        );
-
-        $document->addEmbedded($embeddeds)->save();
-
-        $embeddeds[0]->registerOncePreUpdateEvent(function($document) {
-            $document->addEvent('OncePreUpdate');
-        });
-
-        $embeddeds[1]->registerOncePostUpdateEvent(function($document) {
-            $document->addEvent('OncePostUpdate');
-        });
-
-        $embeddeds[0]->clearEvents()->setName('bar')->setMyEventPrefix('2');
-        $embeddeds[1]->clearEvents()->setName('foo')->setMyEventPrefix('1');
-
-        $document->save();
-
-        $this->assertSame(array(
-            '2PreUpdating1',
-            '2OncePreUpdate1',
-            '2PostUpdating0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreUpdating1',
-            '1PostUpdating0',
-            '1OncePostUpdate0'
-        ), $embeddeds[1]->getEvents());
-
-        $embeddeds[0]->clearEvents()->setName('foo')->setMyEventPrefix('2');
-        $embeddeds[1]->clearEvents()->setName('bar')->setMyEventPrefix('1');
-        
-        $document->save();
-
-        $this->assertSame(array(
-            '2PreUpdating1',
-            '2PostUpdating0',
-        ), $embeddeds[0]->getEvents());
-        $this->assertSame(array(
-            '1PreUpdating1',
-            '1PostUpdating0'
-        ), $embeddeds[1]->getEvents());
     }
 
     public function testDocumentDeleteEventsSingleDocument()
